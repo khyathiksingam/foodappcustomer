@@ -153,17 +153,25 @@ export const LiveTrackingModal: React.FC = () => {
             </div>
 
             {/* Interactive Leaflet Route Map */}
-            <LeafletMap
-              restaurantLat={12.9734}
-              restaurantLng={77.6441}
-              restaurantName={activeOrder.restaurantName}
-              userLat={activeOrder.deliveryAddress.lat || 12.9719}
-              userLng={activeOrder.deliveryAddress.lng || 77.6412}
-              userName={activeOrder.deliveryAddress.name}
-              partnerLat={activeOrder.deliveryPartner?.currentLat}
-              partnerLng={activeOrder.deliveryPartner?.currentLng}
-              isOutForDelivery={activeOrder.status === 'out_for_delivery'}
-            />
+            {(() => {
+              const uLat = activeOrder.deliveryAddress.lat || 17.5389;
+              const uLng = activeOrder.deliveryAddress.lng || 78.3852;
+              const rLat = uLat + 0.0085;
+              const rLng = uLng + 0.0065;
+              return (
+                <LeafletMap
+                  restaurantLat={rLat}
+                  restaurantLng={rLng}
+                  restaurantName={activeOrder.restaurantName}
+                  userLat={uLat}
+                  userLng={uLng}
+                  userName={activeOrder.deliveryAddress.name}
+                  partnerLat={activeOrder.deliveryPartner ? uLat + 0.004 : undefined}
+                  partnerLng={activeOrder.deliveryPartner ? uLng + 0.003 : undefined}
+                  isOutForDelivery={activeOrder.status === 'out_for_delivery'}
+                />
+              );
+            })()}
 
             {/* Delivery Partner Card */}
             {activeOrder.deliveryPartner && (

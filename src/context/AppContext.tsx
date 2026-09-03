@@ -431,49 +431,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return new Promise((resolve) => {
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const newAddr: DeliveryAddress = {
-              id: 'gps-' + Date.now(),
-              type: 'Other',
-              name: 'GPS Current Location',
-              flat: 'Near You (Live GPS Pin)',
-              area: '100 Feet Road, Indiranagar',
-              city: 'Bengaluru',
-              pincode: '560038',
-              phone: user?.phone || '+91 98765 43210',
-              isDefault: true,
-              lat: pos.coords.latitude,
-              lng: pos.coords.longitude,
-            };
-            setAddresses((prev) => [newAddr, ...prev]);
-            setActiveAddress(newAddr);
-            resolve(true);
+          async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            try {
+              const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+                { headers: { 'User-Agent': 'CraveWave-App/1.0' } }
+              );
+              const data = await res.json();
+              const addr = data.address || {};
+              const mainTitle = data.name || addr.amenity || addr.building || addr.road || 'Live GPS Location';
+              const areaName = addr.suburb || addr.neighbourhood || addr.road || addr.village || addr.town || 'Detected Locality';
+              const cityName = addr.city || addr.town || addr.county || addr.state_district || 'City';
+              const stateName = addr.state || '';
+              const pincode = addr.postcode || '';
+
+              const newAddr: DeliveryAddress = {
+                id: 'gps-' + Date.now(),
+                type: 'Other',
+                name: 'GPS Current Location',
+                flat: mainTitle,
+                area: areaName,
+                city: `${cityName}${stateName ? ', ' + stateName : ''}`,
+                pincode: pincode,
+                phone: user?.phone || '+91 92814 32397',
+                isDefault: true,
+                lat,
+                lng,
+              };
+              setAddresses((prev) => [newAddr, ...prev]);
+              setActiveAddress(newAddr);
+              resolve(true);
+            } catch {
+              const fallbackAddr: DeliveryAddress = {
+                id: 'gps-fb-' + Date.now(),
+                type: 'Other',
+                name: 'GPS Current Location',
+                flat: 'Live GPS Pin',
+                area: 'Local Area',
+                city: 'Detected City',
+                pincode: '',
+                phone: user?.phone || '+91 92814 32397',
+                isDefault: true,
+                lat,
+                lng,
+              };
+              setAddresses((prev) => [fallbackAddr, ...prev]);
+              setActiveAddress(fallbackAddr);
+              resolve(true);
+            }
           },
           () => {
-            // fallback
-            const fallbackAddr: DeliveryAddress = {
-              id: 'gps-fb-' + Date.now(),
-              type: 'Home',
-              name: 'Detected Location',
-              flat: 'Indiranagar 100ft Hub',
-              area: 'HAL 2nd Stage, Indiranagar',
-              city: 'Bengaluru',
-              pincode: '560038',
-              phone: user?.phone || '+91 98765 43210',
-              isDefault: true,
-              lat: 12.9719,
-              lng: 77.6412,
-            };
-            setActiveAddress(fallbackAddr);
-            resolve(true);
+            resolve(false);
           },
-          { timeout: 5000 }
+          { timeout: 8000 }
         );
       } else {
         resolve(false);
       }
     });
-  }, [user]);
+  }, [user?.phone]);
 
   // Cart calculations
   const cartRestaurantId = useMemo(() => {
