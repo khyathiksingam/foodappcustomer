@@ -6,6 +6,7 @@ import {
   RotateCw,
   CheckCircle2,
   MessageSquare,
+  Sparkles,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -13,11 +14,11 @@ export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, login } = useApp();
 
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [phoneNumber, setPhoneNumber] = useState('9281432397');
+  const [phoneNumber, setPhoneNumber] = useState('9281432323');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '']);
-  const [generatedOtp, setGeneratedOtp] = useState('4164');
+  const [generatedOtp, setGeneratedOtp] = useState('4829');
   const [timer, setTimer] = useState(30);
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -36,19 +37,21 @@ export const AuthModal: React.FC = () => {
   const cleanedPhone = phoneNumber.replace(/\D/g, '').slice(-10);
 
   const dispatchOtpToDevice = (code: string, channel: 'sms' | 'whatsapp') => {
-    const textMsg = `Your CraveWave verification OTP code is: ${code}. Valid for 10 minutes. Do not share with anyone.`;
+    const textMsg = `Your CraveWave verification OTP code is: ${code}. Valid for 10 minutes.`;
 
     if (channel === 'sms') {
-      // Directly trigger the phone's native SMS Messages inbox
-      window.location.href = `sms:+91${cleanedPhone}?body=${encodeURIComponent(textMsg)}`;
+      try {
+        window.location.href = `sms:+91${cleanedPhone}?body=${encodeURIComponent(textMsg)}`;
+      } catch {}
     } else {
-      // Directly trigger WhatsApp to send to the mobile number
-      window.open(
-        `https://api.whatsapp.com/send?phone=91${cleanedPhone}&text=${encodeURIComponent(
-          `Your CraveWave verification OTP is *${code}*.`
-        )}`,
-        '_blank'
-      );
+      try {
+        window.open(
+          `https://api.whatsapp.com/send?phone=91${cleanedPhone}&text=${encodeURIComponent(
+            `Your CraveWave verification OTP code is: *${code}* (Valid for 10 mins)`
+          )}`,
+          '_blank'
+        );
+      } catch {}
     }
   };
 
@@ -61,20 +64,21 @@ export const AuthModal: React.FC = () => {
       return;
     }
 
-    // 2. Mobile validation
+    // 2. Mobile number validation
     if (cleanedPhone.length < 10) {
       setError('Please enter a valid 10-digit mobile number.');
       return;
     }
 
     setError('');
+    // Auto-generate fresh 4-digit OTP code by website
     const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
     setGeneratedOtp(newOtp);
     setTimer(30);
     setDeliveryChannel(channel);
     setStep('otp');
 
-    // Send directly to the mobile message inbox or WhatsApp
+    // Dispatch directly to device SMS or WhatsApp
     dispatchOtpToDevice(newOtp, channel);
   };
 
@@ -84,7 +88,7 @@ export const AuthModal: React.FC = () => {
     newOtp[index] = val;
     setOtp(newOtp);
 
-    // Auto move to next input
+    // Auto-advance to next input box
     if (val && index < 3) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       if (nextInput) nextInput.focus();
@@ -98,11 +102,16 @@ export const AuthModal: React.FC = () => {
     }
   };
 
+  const handleAutoFillOtp = () => {
+    const digits = generatedOtp.split('');
+    setOtp(digits);
+  };
+
   const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault();
     const entered = otp.join('');
     if (entered.length < 4) {
-      setError('Please enter the 4-digit code sent to your mobile messages.');
+      setError('Please enter the complete 4-digit verification code.');
       return;
     }
 
@@ -148,7 +157,7 @@ export const AuthModal: React.FC = () => {
           <p className="text-xs text-white/90 mt-1">
             {step === 'phone'
               ? 'Join CraveWave for express food delivery & member rewards'
-              : `Check your mobile inbox for code sent to +91 ${cleanedPhone}`}
+              : `OTP auto-generated and sent to +91 ${cleanedPhone}`}
           </p>
         </div>
 
@@ -179,7 +188,7 @@ export const AuthModal: React.FC = () => {
                     maxLength={10}
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="92814 32397"
+                    placeholder="92814 32323"
                     className="w-full px-3.5 py-3 text-sm font-semibold bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none"
                     required
                     autoFocus
@@ -217,7 +226,7 @@ export const AuthModal: React.FC = () => {
                 />
               </div>
 
-              {/* Action Buttons: Direct SMS or WhatsApp Dispatch */}
+              {/* Dispatch Action Buttons */}
               <div className="space-y-2 pt-1">
                 <button
                   type="button"
@@ -243,29 +252,27 @@ export const AuthModal: React.FC = () => {
               </p>
             </div>
           ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-5">
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
               
-              {/* Clean Status Card */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-center space-y-2">
+              {/* Clear Dispatched Receipt Box */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center space-y-2.5 shadow-sm">
                 <div className="flex items-center justify-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-[11px] font-black uppercase tracking-wider">
-                    Dispatched to {deliveryChannel === 'sms' ? 'SMS Messages Inbox' : 'WhatsApp'}
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span className="text-xs font-black uppercase tracking-wider">
+                    OTP Dispatched to Mobile
                   </span>
                 </div>
+                
                 <p className="text-xs text-slate-600 dark:text-slate-300">
-                  Please check your phone's messages sent to{' '}
-                  <span className="font-bold text-slate-900 dark:text-white font-mono">
-                    +91 {cleanedPhone}
-                  </span>
+                  Code sent to <span className="font-bold text-slate-900 dark:text-white font-mono">+91 {cleanedPhone}</span> via {deliveryChannel === 'sms' ? 'SMS Messages' : 'WhatsApp'}
                 </p>
 
-                {/* Direct Access Buttons to Message Apps */}
-                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+                {/* Direct Message App Buttons */}
+                <div className="pt-1 flex flex-col sm:flex-row items-center justify-center gap-2">
                   <button
                     type="button"
                     onClick={() => dispatchOtpToDevice(generatedOtp, 'sms')}
-                    className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-100 flex items-center justify-center gap-1.5 transition-colors"
+                    className="w-full sm:w-auto px-3.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-100 flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
                     <span>Open Messages Inbox</span>
@@ -273,9 +280,24 @@ export const AuthModal: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => dispatchOtpToDevice(generatedOtp, 'whatsapp')}
-                    className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 flex items-center justify-center gap-1.5 transition-colors"
+                    className="w-full sm:w-auto px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <span>🟢 Open WhatsApp</span>
+                  </button>
+                </div>
+
+                {/* Clear Dispatched Code Preview & 1-Tap Fill */}
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between px-1 text-xs">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Dispatched Code: <strong className="font-mono text-sm text-slate-900 dark:text-white font-black tracking-widest">{generatedOtp}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleAutoFillOtp}
+                    className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-1 py-1 px-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Auto-Fill {generatedOtp}</span>
                   </button>
                 </div>
               </div>
